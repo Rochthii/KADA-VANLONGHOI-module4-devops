@@ -19,17 +19,16 @@ COPY . .
 RUN npx prisma generate
 # Compile TypeScript -> dist/
 RUN npm run build
-# Re-install with only production deps; devDependencies are dropped so they
-# don't get carried into the final image when node_modules is copied below
-RUN npm ci --omit=dev
+# Keep the generated dependency tree because the runtime command below uses
+# the Prisma CLI to apply migrations before NestJS starts.
 
 # ---- production: minimal runtime image ----
 FROM node:20-alpine AS production
 RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production
-# Only copy the build artifacts and prod deps needed to run the app -
-# no source TS, no devDependencies, keeping the final image small
+# Copy the compiled application, generated Prisma client and the Prisma CLI
+# required by the startup migration command.
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/prisma ./prisma
