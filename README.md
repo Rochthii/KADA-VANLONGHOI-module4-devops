@@ -1,14 +1,19 @@
 # Document Management API — Module 4 DevOps Assignment
 
 Hệ thống Backend Quản lý Tài liệu (NestJS, Prisma, PostgreSQL, Redis, MinIO) được xây dựng theo chuẩn kĩ thuật sản xuất phục vụ môn học Module 4 — DevOps. 
-Dự án được thiết kế nhằm thực hành quy trình phân chia công việc trong nhóm 2 thành viên, quản lý quyền sở hữu file (File Ownership), triển khai quy trình Git Branch / Pull Request (PR), xử lý Merge Conflict thực tế và đóng gói triển khai tự động qua Docker Compose.
+Dự án được thiết kế nhằm thực hành quy trình phân chia công việc trong nhóm, quản lý quyền sở hữu file (File Ownership), triển khai quy trình Git Branch / Pull Request (PR), xử lý Merge Conflict thực tế và đóng gói triển khai tự động qua Docker Compose.
 
 ---
 
-## Thành viên thực hiện
+## Thông tin Nhóm thực hiện
 
-- **Người A**: Chăm Rốch Thi
-- **Người B**: Nguyễn Tiến Thành
+- **Tên nhóm**: Vân Long Hội
+- **Thành viên nhóm**:
+  1. Chăm Rốch Thi (Người A - Phụ trách Base, User Module, Swagger Spec)
+  2. Nguyễn Tiến Thành (Người B - Phụ trách Document Module, MinIO Storage, Docker Stack)
+  3. Phạm Thành Long
+  4. Hà Anh Tuấn
+  5. Đàm Công Tú
 
 ---
 
@@ -16,9 +21,9 @@ Dự án được thiết kế nhằm thực hành quy trình phân chia công v
 
 ### Nguyên tắc phối hợp
 1. **Sở hữu file độc lập**: Mỗi file thuộc quyền sở hữu duy nhất của 1 thành viên. Thành viên còn lại không tự ý chỉnh sửa file của người kia trừ khi được đồng ý.
-2. **Quản lý file cấu hình chung (`src/app.module.ts`)**: Đây là file duy nhất hai thành viên cùng khai báo để thực hành tạo và giải quyết Merge Conflict trong quá trình mở Pull Request.
-3. **Quản lý Prisma Schema (`prisma/schema.prisma`)**: Người A (Chăm Rốch Thi) định nghĩa sẵn toàn bộ cơ sở dữ liệu (`User` và `Document`) ở giai đoạn Base. Người B không can thiệp trực tiếp vào file schema.
-4. **Thứ tự triển khai**: Nhánh nền tảng (`main`) phải được đẩy lên trước khi hai thành viên phân tách nhánh tính năng.
+2. **Quản lý file cấu hình chung (`src/app.module.ts`)**: Đây là file duy nhất hai thành viên chính cùng khai báo để thực hành tạo và giải quyết Merge Conflict trong quá trình mở Pull Request.
+3. **Quản lý Prisma Schema (`prisma/schema.prisma`)**: Người A (Chăm Rốch Thi) định nghĩa sẵn toàn bộ cơ sở dữ liệu (`User` và `Document`) ở giai đoạn Base. Thành viên khác không can thiệp trực tiếp vào file schema.
+4. **Thứ tự triển khai**: Nhánh nền tảng (`main`) phải được đẩy lên trước khi hai nhánh tính năng được phân tách.
 
 ---
 
