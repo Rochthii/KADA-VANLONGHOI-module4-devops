@@ -8,3 +8,4 @@ dist
 *.md
 coverage
 test
+*.log
