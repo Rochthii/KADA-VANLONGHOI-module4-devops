@@ -1,92 +1,144 @@
-# Document Management API
+# Document Management API — Module 4 DevOps Assignment
 
-Backend REST API (NestJS) dựng trong môn Module 4 — DevOps. Dự án thực hành Docker,
-Docker Compose, Git Workflow làm việc nhóm (PR, review, merge), PostgreSQL, Redis và Swagger.
+Dự án Hệ thống Backend Quản lý Tài liệu (**NestJS + Prisma + PostgreSQL + Redis + MinIO**) được xây dựng chuẩn Production cho môn **Module 4 — DevOps**. 
+Được thiết kế để thực hành phân chia công việc nhóm 2 người, quản lý file ownership, luồng Git Branch / Pull Request (PR), xử lý Merge Conflict thực tế và đóng gói Docker 1-click execution.
 
-## Tech stack
+---
 
-- NestJS 10 (TypeScript), Prisma ORM
-- PostgreSQL — lưu dữ liệu `User` và `Document`
-- Redis — cache danh sách document theo user
-- Docker + Docker Compose — chạy toàn bộ stack bằng 1 lệnh
-- Swagger — UI test API + xuất `swagger.json` để import vào Postman
+## 👥 PHÂN CÔNG VAI TRÒ & PHÂN QUYỀN SỞ HỮU FILE (FILE OWNERSHIP)
 
-## Cấu trúc dự án (theo Git branch)
+### 🚨 QUY TẮC VÀNG LÀM VIỆC NHÓM
+1. **Một người sở hữu tuyệt đối mỗi file**: Người kia **KHÔNG** được tự ý chỉnh sửa file thuộc sở hữu của người còn lại.
+2. **File chung duy nhất (`src/app.module.ts`)**: Nơi tạo ra **Merge Conflict cố ý** khi làm PR. Mỗi người chỉ được thêm import module của mình vào đúng phần được giao.
+3. **Prisma Schema (`prisma/schema.prisma`)**: Do **Người A** viết sẵn toàn bộ 2 model `User` và `Document` ở phase Base. Người B không tự sửa.
+4. **Thứ tự bất biến**: Base (mốc `M1`) phải xuất hiện trên `main` TRƯỚC, sau đó mới checkout các nhánh `feature/*`.
+
+---
+
+### 📋 BẢNG PHÂN QUYỀN CỤ THỂ
+
+| File / Thư mục | Người A | Người B | Ghi chú |
+| :--- | :---: | :---: | :--- |
+| `package.json`, `nest-cli.json`, `tsconfig*.json`, `.eslintrc.js`, `.prettierrc`, `.gitignore`, `README.md` | **✓** | **✗** | **A** khởi tạo & quản lý ở Base |
+| `src/main.ts` (Swagger UI + `/api-docs-json` + script export) | **✓** | **✗** | **A** sở hữu cấu hình Swagger |
+| `src/app.controller.ts` / `service.ts` / `spec.ts` | **✓** | **✗** | Standard NestJS Core |
+| `prisma/schema.prisma` (+ migrations) | **✓** | **▲báo-A** | **A** viết sẵn model `User` & `Document` |
+| `src/prisma/*` | **✓** | **✗** | Database Client Module |
+| `src/cache/*` (Redis) | **✓** | **▲dùng-không-sửa** | **B** chỉ GỌI service cache, không sửa code |
+| `src/auth/api-key.guard.ts` | **✓** | **✗** | API Key Guard Module |
+| `src/health/*` | **✓** | **✗** | Health Check Endpoint |
+| `test/app.e2e-spec.ts`, `test/jest-e2e.json` | **✓** | **✗** | E2E Framework Base |
+| `src/users/**` + `test/users.e2e-spec.ts` | **✓** | **✗ (Review)** | **A** phát triển, **B** review |
+| `src/documents/**` | **✗ (Review)** | **✓** | **B** phát triển, **A** review |
+| `src/storage/**` (MinIO Client) | **✗** | **✓** | **B** sở hữu toàn bộ luồng lưu trữ file |
+| `test/documents.e2e-spec.ts` | **✗** | **✓** | **B** phát triển E2E test cho Document |
+| `Dockerfile`, `docker-compose.yml`, `.dockerignore` | **▲tạo-ở-base** | **✓** | **A** tạo mẫu ở base, **B** nâng cấp & sở hữu từ Phase B |
+| `src/app.module.ts` | **▲ Khối Users** | **▲ Khối Documents** | **FILE CHUNG DUY NHẤT** → Tạo Conflict khi Merge PR #2 |
+
+---
+
+## 🛠️ TECH STACK
+
+- **Core**: NestJS 10 (TypeScript), Prisma ORM
+- **Database**: PostgreSQL (Lưu trữ `User` và `Document` metadata)
+- **Caching**: Redis (Cache danh sách tài liệu theo `userId`)
+- **Object Storage**: MinIO / S3 API Compatible (Lưu trữ file upload thực tế)
+- **Containerization**: Docker & Docker Compose
+- **API Documentation**: Swagger UI (`/api-docs`), Raw JSON (`/api-docs-json`), Exporter script (`npm run swagger:export`)
+
+---
+
+## 🌿 GIT WORKFLOW & QUY TRÌNH MERGE PR
 
 ```
-main (khung nền + kết nối DB)
- ├── feat/user     → User API: GET /users, POST /users
- └── feat/document → Document API: upload, list theo user, down-… load, delete
+main (Base M1)
+ ├── feature/user      → (Người A làm -> PR #1 -> Người B Review & Merge)
+ └── feature/document  → (Người B làm -> PR #2 -> Conflict app.module.ts -> Người A Review & Resolve & Merge)
 ```
 
-Quy trình: không push trực tiếp lên `main`; mọi thay đổi qua feature branch → Pull Request →
-thành viên khác review → merge (xử lý conflict nếu có).
+1. **Phase 0 (Base - Mốc M1)**: **Người A** hoàn thành cấu hình nền tảng, Swagger, Prisma schema trên `main` -> Push `main`.
+2. **Phase 1 (Features)**:
+   - **Người A**: Checkout `feature/user` từ `main` (M1) -> Làm User API + E2E test -> Push & Mở **PR #1**.
+   - **Người B**: Checkout `feature/document` từ `main` (M1) -> Làm Document API + Storage + Docker -> Push & Mở **PR #2**.
+3. **Phase 2 (Review & Merge)**:
+   - **PR #1 (`feature/user`)**: **Người B** review code, chạy test -> Approve & Merge vào `main`.
+   - **PR #2 (`feature/document`)**: Sau khi PR #1 vào `main`, PR #2 bị **Conflict tại `app.module.ts`**.
+   - **Người A** tiến hành Review PR #2 -> Giải quyết Conflict (giữ CẢ `UsersModule` và `DocumentsModule`) -> Merge vào `main`.
 
-## Yêu cầu
+---
 
-- Node.js 20+ (để chạy local / sinh Swagger), hoặc chỉ cần Docker Desktop.
+## 🚀 HƯỚNG DẪN CHẠY HỆ THỐNG
 
-## Chạy bằng Docker Compose
+### 1. Chạy 1-Click với Docker Compose (Recomended)
 
 ```bash
+# Sau khi clone repo sạch
 cp .env.example .env
+
+# Khởi động toàn bộ stack (API + Postgres + Redis + MinIO)
 docker compose up -d --build
 ```
 
-Migrations tự chạy khi container `api` khởi động (`prisma migrate deploy`).
+- **Swagger UI**: `http://localhost:3000/api-docs`
+- **Swagger JSON Specification**: `http://localhost:3000/api-docs-json`
+- **PostgreSQL**: `localhost:5433`
+- **Redis**: `localhost:6379`
+- **MinIO Console**: `http://localhost:9001` (User: `minioadmin` / Pass: `minioadmin`)
 
-- API: http://localhost:3000
-- Swagger UI: http://localhost:3000/api-docs
-- Postgres: localhost:5433 (host) → 5432 (container)
-- Redis: localhost:6379
-- MinIO: localhost:9000 (API) / 9001 (console)
-
-Tạo MinIO bucket lần đầu:
+### 2. Xuất File Swagger spec cho Postman
 
 ```bash
-docker compose exec minio mc alias set local http://localhost:9000 minioadmin minioadmin
-docker compose exec minio mc mb local/documents
+npm run swagger:export
 ```
+-> File `swagger.json` sẽ tự động được ghi tại thư mục gốc dự án.
 
-## Xuất swagger.json (import vào Postman)
+---
+
+## 🧪 CHẠY UNIT TEST & E2E TEST
 
 ```bash
-npm install
-npm run swagger:export   # tạo file swagger.json tại thư mục gốc
+# Chạy Unit Tests
+npm run test
+
+# Chạy E2E Tests (Yêu cầu Postgres & Redis đang chạy)
+npm run test:e2e
 ```
 
-Hoặc lấy trực tiếp từ server đang chạy: `GET http://localhost:3000/api-docs-json`.
+---
 
-## Endpoint
+## 📋 ENDPOINTS SPECIFICATION
 
-| Method | Path | Mô tả | API key |
-|---|---|---|---|
-| GET | `/health` | health check | Không |
-| GET | `/users` | Danh sách user | Có |
-| POST | `/users` | Tạo user mới | Có |
-| POST | `/documents/upload` | Upload tài liệu (multipart) | Có |
-| GET | `/documents?userId=` | Danh sách document theo user (có cache Redis) | Có |
-| GET | `/documents/:id` | Chi tiết document | Có |
-| GET | `/documents/:id/download` | Tải file | Có |
-| DELETE | `/documents/:id` | Xoá document | Có |
+*Tất cả các endpoint cần bảo mật đều chấp nhận Header `x-api-key: change-me-local-dev-key` (hoặc giá trị trong `.env`).*
 
-Authentication: gửi header `x-api-key` với giá trị `API_KEY` trong `.env`
-(mặc định `change-me-local-dev-key`).
+| Method | Endpoint | Description | Auth (API Key) | Owner |
+| :--- | :--- | :--- | :---: | :---: |
+| `GET` | `/health` | Healthcheck hệ thống | ✗ | Người A |
+| `GET` | `/api-docs-json` | Trả về raw OpenAPI spec | ✗ | Người A |
+| `GET` | `/users` | Lấy danh sách Users | ✓ | Người A |
+| `POST` | `/users` | Tạo mới User | ✓ | Người A |
+| `POST` | `/documents/upload` | Upload tài liệu (Multipart) | ✓ | Người B |
+| `GET` | `/documents?userId=...` | Danh sách tài liệu của User (Redis Cache) | ✓ | Người B |
+| `GET` | `/documents/:id` | Chi tiết tài liệu | ✓ | Người B |
+| `GET` | `/documents/:id/download` | Stream tải file từ MinIO | ✓ | Người B |
+| `DELETE` | `/documents/:id` | Xóa tài liệu (MinIO + DB + Evict Cache) | ✓ | Người B |
 
-## Chạy test
+---
 
-```bash
-npm run test       # unit test
+## 🎬 KỊCH BẢN DEMO BÁO CÁO (TRƯỚC HỘI ĐỒNG)
 
-cp .env.example .env   # cần Postgres + Redis đang chạy
-npm run test:e2e        # e2e test
-```
-
-## Lệnh Docker hữu ích
-
-```bash
-docker compose ps              # trạng thái container
-docker compose logs -f api     # xem log api
-docker compose down            # dừng, giữ volume
-docker compose down -v         # dừng và xoá cả volume
-```
+1. **Kiểm tra Git Tree**:
+   ```bash
+   git log --graph --oneline --all
+   ```
+   *Minh chứng luồng nánh: Base -> Merge PR #1 -> Resolve Conflict & Merge PR #2.*
+2. **Khởi chạy 1-Click**:
+   ```bash
+   docker compose up -d --build
+   ```
+3. **Mở Swagger UI**: Kiểm tra giao diện tại `http://localhost:3000/api-docs`.
+4. **Import Swagger vào Postman**: Xuất file `npm run swagger:export` -> Import `swagger.json` vào Postman.
+5. **Chạy Kịch bản Data**:
+   - `POST /users`: Tạo 2 Users.
+   - `POST /documents/upload`: Mỗi user upload 1 file đính kèm.
+   - `GET /documents?userId=X`: Lần 1 đọc DB, Lần 2 đọc từ **Redis Cache (Cache Hit)**.
+   - `GET /documents/:id/download`: Tải file trực tiếp.
