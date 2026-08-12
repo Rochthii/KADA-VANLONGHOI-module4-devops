@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Shortener</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="card">
+    <h1>URL Shortener</h1>
+    <p class="sub">Rút gọn link - nhóm demo DevOps</p>
+
+    <div class="field">
+      <label for="urlInput">Link dài</label>
+      <div class="row">
+        <input id="urlInput" type="url" placeholder="https://example.com/..." required>
+        <button id="btnShorten">Rút gọn</button>
+      </div>
+    </div>
+
+    <div id="result" class="result hidden">
+      <a id="shortUrl" href="#" target="_blank" rel="noopener"></a>
+      <button id="btnCopy">Copy</button>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+
+    <h2>Danh sách link</h2>
+    <p class="hint">Bấm vào code để mở thẳng tới URL gốc</p>
+    <table id="linksTable">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>URL gốc</th>
+          <th>Clicks</th>
+          <th>Ngày tạo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="linksBody"></tbody>
+    </table>
+    <p id="empty" class="empty hidden">Chưa có link nào. Tạo link đầu tiên bên trên!</p>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
